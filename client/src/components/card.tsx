@@ -3,7 +3,7 @@ export default function Card({
   className,
 }: {
   children: React.ReactNode;
-  className?: String;
+  className?: string;
 }) {
   return (
     <div className={`border rounded-md w-sm px-6 py-12 bg-background/10 backdrop-blur-xl shadow-xl ${className}`}>{children}</div>

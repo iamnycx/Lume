@@ -6,12 +6,29 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from apps.posts.models import Post, PostResponse, Responses
 from apps.posts.serializers import PostSerializer
+from django.db.models import Count, Q
 
 class PostViewSet(ModelViewSet):
-    queryset = Post.objects.all().order_by('-created_at')
+    queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+          return (
+            Post.objects
+            .annotate(
+                like_count=Count(
+                    "responses",
+                    filter=Q(responses__response=Responses.LIKE)
+                ),
+                dislike_count=Count(
+                    "responses",
+                    filter=Q(responses__response=Responses.DISLIKE)
+                ),
+            )
+            .order_by("-created_at")
+        )
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -26,8 +43,22 @@ class PostViewSet(ModelViewSet):
                 {"detail": "response must be 'like' or 'dislike'"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
-        return Response({"detail": "reaction updated"})
+        
+        PostResponse.objects.update_or_create(
+            post=post,
+            user=request.user,
+            defaults={"response": response_value},
+        )
+
+        
+        like_count = post.responses.filter(response=Responses.LIKE).count()
+        dislike_count = post.responses.filter(response=Responses.DISLIKE).count()
+
+        return Response({
+            "detail": "reaction updated",
+            "like_count": like_count,
+            "dislike_count": dislike_count,
+        })
 
 class SelfPostViewSet(ModelViewSet):
     serializer_class = PostSerializer

@@ -12,8 +12,6 @@ class Post(models.Model):
     image = models.ImageField(upload_to='post/images', validators=[validate_file_size])
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='posts')
-    like_count = Count("responses", filter=Q(responses_response=Responses.LIKE))
-    dislike_count = Count("responses", filter=Q(responses_response=Responses.DISLIKE))
 
     
 class PostResponse(models.Model):

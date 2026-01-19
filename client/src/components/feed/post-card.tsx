@@ -1,66 +1,81 @@
-import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
-import { Button } from "../ui/button";
-import type { PostDataType } from "@/types";
-import Card from "../card";
-import Axios from "@/lib/axios";
+import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react';
+import { Button } from '../ui/button';
+import type { PostDataType } from '@/types';
+import Card from '../card';
+import Axios from '@/lib/axios';
+import { useState } from 'react';
 
 export default function PostCard({ data }: { data: PostDataType }) {
-  const date = new Date(data.created_at).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+	const [post, setPost] = useState<PostDataType>(data);
+	const [loading, setLoading] = useState(false);
 
-  const handleReaction = async (value: "LIKE" | "DISLIKE") => {
-    const res = await Axios.get(`/api/posts/${data.id}`);
+	const date = new Date(post.created_at).toLocaleDateString('en-GB', {
+		day: '2-digit',
+		month: 'short',
+		year: 'numeric',
+	});
 
-    if (value == "LIKE") {
-      await Axios.patch(`/api/posts/${data.id}/`, {
-        likes: res.data.likes + 1,
-      });
-    }
-  };
+	const handleReaction = async (value: 'LIKE' | 'DISLIKE') => {
+		if (loading) return;
+		try {
+			setLoading(true);
+			await Axios.post(`/api/posts/${post.id}/react/`, {
+				response: value === 'LIKE' ? 'like' : 'dislike',
+			});
 
-  return (
-    <Card>
-      <div className="space-y-4">
-        <div className="flex justify-between items-baseline">
-          <div className="flex items-baseline gap-2">
-            <img
-              src={data.author.avatar}
-              alt={data.author.name.charAt(0)}
-              className="bg-muted h-8 w-8 flex justify-center items-center rounded-full"
-            />
-            <h1>{data.author.name}</h1>
-          </div>
-          <span className="text-xs">Posted on: {date}</span>
-        </div>
+			const res = await Axios.get(`/api/posts/${post.id}`);
+			setPost(res.data);
+		} catch (err) {
+			console.error('Failed to react to post', err);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-        <div className="w-full h-0.5 rounded-full bg-muted" />
+	return (
+		<Card>
+			<div className='space-y-4'>
+				<div className='flex justify-between items-baseline'>
+					<div className='flex items-center gap-2'>
+						<img
+							src={post.author.avatar}
+							alt={post.author.name.charAt(0)}
+							className='bg-muted h-8 w-8 flex justify-center items-center rounded-full'
+						/>
+						<h1>{post.author.name}</h1>
+					</div>
+					<span className='text-xs'>Posted on: {date}</span>
+				</div>
 
-        <p className="text-sm text-pretty tracking-tight">
-          {data.caption.slice(0, 380)}
-        </p>
+				<div className='w-full h-0.5 rounded-full bg-muted' />
 
-        <div>{data.image && <img src={data.image} />}</div>
+				<p className='text-sm text-pretty tracking-tight'>
+					{post.caption.slice(0, 380)}
+				</p>
 
-        <div className="grid grid-cols-2 w-full gap-2 pt-4">
-          <Button
-            variant="outline"
-            className="hover:text-green-400 transition-colors duration-300 ease-in-out"
-          >
-            <ThumbsUpIcon />
-            <span>Like - {data.likes.toString()}</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="hover:text-red-400 transition-colors duration-300 ease-in-out"
-          >
-            <ThumbsDownIcon />
-            <span>Dislike - {data.dislikes.toString()}</span>
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
+				<div>{post.image && <img src={post.image} />}</div>
+
+				<div className='grid grid-cols-2 w-full gap-2 pt-4'>
+					<Button
+						onClick={() => handleReaction('LIKE')}
+						variant='outline'
+						disabled={loading}
+						className='hover:text-green-400 transition-colors duration-300 ease-in-out'
+					>
+						<ThumbsUpIcon />
+						<span>Like - {post.like_count.toString()}</span>
+					</Button>
+					<Button
+						onClick={() => handleReaction('DISLIKE')}
+						variant='outline'
+						disabled={loading}
+						className='hover:text-red-400 transition-colors duration-300 ease-in-out'
+					>
+						<ThumbsDownIcon />
+						<span>Dislike - {post.dislike_count.toString()}</span>
+					</Button>
+				</div>
+			</div>
+		</Card>
+	);
 }

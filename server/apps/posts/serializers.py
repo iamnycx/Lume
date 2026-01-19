@@ -21,19 +21,39 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class PostSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
-    like_count = serializers.IntegerField(read_only=True)
-    dislike_count = serializers.IntegerField(read_only=True)
+    like_count = serializers.SerializerMethodField()
+    dislike_count = serializers.SerializerMethodField()
     my_response = serializers.SerializerMethodField()
-        
+
     class Meta:
         model = Post
-        fields = [ 'id', 'caption', 'like_count', 'dislike_count', 'image', 'author', 'created_at', 'my_response']
-        read_only_fields = ['likes', 'dislikes', 'author', 'created_at']
-        
-        
+        fields = [
+            "id",
+            "caption",
+            "image",
+            "author",
+            "created_at",
+            "like_count",
+            "dislike_count",
+            "my_response",
+        ]
+        read_only_fields = [
+            "author",
+            "created_at",
+            "like_count",
+            "dislike_count",
+            "my_response",
+        ]
+
     def get_my_response(self, obj):
         request = self.context.get("request")
-        if request is None or request.user.is_anonymous:
+        if not request or request.user.is_anonymous:
             return None
         pr = obj.responses.filter(user=request.user).first()
         return pr.response if pr else None
+
+    def get_like_count(self, obj):
+        return obj.responses.filter(response=Responses.LIKE).count()
+
+    def get_dislike_count(self, obj):
+        return obj.responses.filter(response=Responses.DISLIKE).count()
