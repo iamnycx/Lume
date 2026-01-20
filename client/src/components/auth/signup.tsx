@@ -41,7 +41,11 @@ export default function Signup({ setActiveCard }: { setActiveCard: Function }) {
 			form.append('gender', gender);
 			if (avatarFile) form.append('avatar', avatarFile);
 
-			await Axios.post('/auth/users/', form);
+			await Axios.post('/auth/users/', form, {
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+			});
 
 			const res = await Axios.post('/auth/jwt/create/', {
 				email,

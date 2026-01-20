@@ -19,6 +19,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://social-network-eight-eta.vercel.app",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = False
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
