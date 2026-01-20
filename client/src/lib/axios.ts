@@ -1,63 +1,65 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { handleLogout } from "./auth";
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { handleLogout } from './auth';
+
+const apiBaseUrl = import.meta.env.VITE_BASE_URL;
 
 const Axios = axios.create({
-  baseURL: "http://localhost:8000",
+	baseURL: apiBaseUrl,
 });
 
 Axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access");
+	const token = localStorage.getItem('access');
 
-  if (token && config.headers) {
-    config.headers.Authorization = `JWT ${token}`;
-  }
+	if (token && config.headers) {
+		config.headers.Authorization = `JWT ${token}`;
+	}
 
-  return config;
+	return config;
 });
 
 const refreshAccessToken = async () => {
-  const refresh = localStorage.getItem("refresh");
+	const refresh = localStorage.getItem('refresh');
 
-  if (!refresh) throw new Error("No refresh token");
+	if (!refresh) throw new Error('No refresh token');
 
-  const res = await axios.post("http://localhost:8000/auth/jwt/refresh", {
-    refresh,
-  });
+	const res = await axios.post(`${apiBaseUrl}/auth/jwt/refresh`, {
+		refresh,
+	});
 
-  const newAccess = res.data.access;
-  const newRefresh = res.data.refresh ?? refresh;
+	const newAccess = res.data.access;
+	const newRefresh = res.data.refresh ?? refresh;
 
-  localStorage.setItem("access", newAccess);
-  localStorage.setItem("refresh", newRefresh);
+	localStorage.setItem('access', newAccess);
+	localStorage.setItem('refresh', newRefresh);
 
-  return newAccess;
+	return newAccess;
 };
 
 Axios.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
+	(response) => response,
+	async (error: AxiosError) => {
+		const originalRequest = error.config as InternalAxiosRequestConfig & {
+			_retry?: boolean;
+		};
 
-    if (error.response?.status === 401 && !originalRequest?._retry) {
-      originalRequest._retry = true;
+		if (error.response?.status === 401 && !originalRequest?._retry) {
+			originalRequest._retry = true;
 
-      try {
-        const newAccess = await refreshAccessToken();
+			try {
+				const newAccess = await refreshAccessToken();
 
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `JWT ${newAccess}`;
-        }
+				if (originalRequest.headers) {
+					originalRequest.headers.Authorization = `JWT ${newAccess}`;
+				}
 
-        return Axios(originalRequest);
-      } catch (e) {
-        handleLogout();
-        return Promise.reject(e);
-      }
-    }
-    return Promise.reject(error);
-  }
+				return Axios(originalRequest);
+			} catch (e) {
+				handleLogout();
+				return Promise.reject(e);
+			}
+		}
+		return Promise.reject(error);
+	}
 );
 
 export default Axios;
